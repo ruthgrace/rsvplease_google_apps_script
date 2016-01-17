@@ -9,11 +9,11 @@ See the [RSVPlease template](https://docs.google.com/spreadsheets/d/1nL1eo3AuFfl
 
 ### Sending invitations
 
-The first step is to send your invitations. Make sure that your invitation form title, description, and questions are filled out, along with the email list in the Google Sheet.
+The first step is to send your invitations. Make sure that your invitation email and invitation form title, description, and questions are filled out, along with the email list in the Google Sheet.
 
 ### Asking for confirmations
 
-The second step is to take the list of sign-ups and ask as many as fit into your event to confirm their attendance. Make sure your confirmation question is filled out in the Google Sheet. This will be added onto the end of the invitation form. You also need to fill in the Number of seats in the Google Sheet.
+The second step is to take the list of sign-ups and ask as many as fit into your event to confirm their attendance. Make sure your confirmation email and confirmation form question are filled out in the Google Sheet. This will be added onto the end of the invitation form. You also need to fill in the Number of seats in the Google Sheet.
 
 ### Moving the wait list
 
