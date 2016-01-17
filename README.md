@@ -1,5 +1,3 @@
-# RSVPlease
-
 ![RSVPlease screenshot](images_for_readme/rsvplease_logo.png)
 
 Google apps script for automating RSVP invitation, confirmation, wait list movement process.
