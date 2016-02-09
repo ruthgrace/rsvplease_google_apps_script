@@ -42,11 +42,14 @@ function buildForm_(rowNum, values, signUpForm) {
       var colNum = contentColumn;
       mcQuestion.setTitle(values[rowNum][colNum]);
       colNum += 1;
-      while (values[rowNum][colNum] != "") {
-        Logger.log("Adding multiple choice: "+ values[rowNum][colNum]);
-        mcQuestion.createChoice(values[rowNum][colNum]);
+      var choices = [];
+      while (colNum < values[rowNum].length && values[rowNum][colNum] != "") {
+        Logger.log("Creating choice: "+ values[rowNum][colNum]);
+        choices.push(mcQuestion.createChoice(values[rowNum][colNum]));
         colNum += 1;
       }
+      Logger.log("Adding choices to multiple choice question");
+      mcQuestion.setChoices(choices);
     }
     rowNum += 1;
   }
@@ -63,9 +66,8 @@ function getRowWithItem_(values, itemName) {
   }
   return rowNum;
 }
-function getNextRowWithDescription_(values, itemDescription) {
-  var descriptionColumn = parseInt(PropertiesService.getScriptProperties().setProperty('descriptionColumn', 1));
-  var rowNum = 0;
+function getNextRowWithDescription_(rowNum, values, itemDescription) {
+  var descriptionColumn = parseInt(PropertiesService.getScriptProperties().getProperty('descriptionColumn'));
   while (values[rowNum][descriptionColumn] != itemDescription) {
     rowNum += 1;
   }
@@ -74,7 +76,7 @@ function getNextRowWithDescription_(values, itemDescription) {
 function whichQuestion_(form,questionTitle) {
   var items = form.getItems();
   for (var item = 0; item < items.length; item++) {
-    if (items[item].getTitle == questionTitle) {
+    if (items[item].getTitle() == questionTitle) {
       return item;
     }
   }
@@ -82,7 +84,7 @@ function whichQuestion_(form,questionTitle) {
 function getQuestion_(form,questionTitle) {
   var items = form.getItems();
   for (var item = 0; item < items.length; item++) {
-    if (items[item].getTitle == questionTitle) {
+    if (items[item].getTitle() == questionTitle) {
       return items[item];
     }
   }
@@ -154,23 +156,17 @@ function sendConfirmation_() {
   // GET CONFIRMATION EMAIL DETAILS
   Logger.log("Creating confirmation email");
   var rowNum = getRowWithItem_(values, "Confirmation email");
-  var subject = values[rowNum][contentColumn];
+  var subject = values[getNextRowWithDescription_(rowNum, values, "Subject")][contentColumn];
   Logger.log("Confirmation email subject: " + subject);
-  rowNum += 1;
-  var messagePart1 = values[rowNum][contentColumn];
-  Logger.log("Confirmation email messagePart1: " + messagePart1);
-  rowNum += 1;
+  var messagePart1 = values[getNextRowWithDescription_(rowNum, values, "Part 1")][contentColumn];
+  Logger.log("Confirmation email message part 1: " + messagePart1);
+  var messagePart2 = values[getNextRowWithDescription_(rowNum, values, "Part 2")][contentColumn];
+  Logger.log("Confirmation email message part 2: " + messagePart2);
   var numSeats = values[getRowWithItem_(values, "Number of seats")][contentColumn];
   Logger.log("Confirmation email numSeats: " + numSeats);
-  var messagePart2 = values[rowNum][contentColumn];
-  Logger.log("Confirmation email messagePart2: " + messagePart2);
-  rowNum += 1;
-  message += " " + numSeats + " ";
-  rowNum += 1;
-  message += values[rowNum][contentColumn];
-  Logger.log("Confirmation email message: " + message);
-  // SEND EMAIL TO PEOPLE WHO SIGNED UP
   var signups = signUpForm.getResponses();
+
+  // SEND EMAIL TO PEOPLE WHO SIGNED UP
   var emailQuestion = whichQuestion_(signUpForm,"Email");
   var numConfirmations = -1;
   if (signups.length < numSeats) {
@@ -180,7 +176,7 @@ function sendConfirmation_() {
     numConfirmations = numSeats;
   }
   // ADD CONFIRMATION QUESTION
-  if (confirmationQuestionAdded == false) {
+  if (confirmationQuestionAdded == "false") {
     rowNum = getRowWithItem_(values, "Confirmation question");
     buildForm_(rowNum, values, signUpForm);
     PropertiesService.getScriptProperties().setProperty('confirmationQuestionAdded', true);
@@ -189,10 +185,14 @@ function sendConfirmation_() {
   for (var response = 0; response < numConfirmations; response ++) {
     // SEND EMAIL
     var answers = signups[response].getItemResponses();
-    var formURL = signups[response].getEditResponseUrl();
-    var message = messagePart1 + " " + formURL + "\n" + messagePart2;
-    Logger.log("Sending confirmation email to " + answers[emailQuestion]);
-    MailApp.sendEmail(answers[emailQuestion], subject, message);
+    var formURL = signUpForm.shortenFormUrl(signups[response].getEditResponseUrl());
+    var message = messagePart1 + " " + formURL + "\n";
+    if (signups.length > numSeats) {
+      message = message + " " + (signups.length - numSeats);
+      message = message + messagePart2;
+    }
+    Logger.log("Sending confirmation email to " + answers[emailQuestion].getResponse());
+    MailApp.sendEmail(answers[emailQuestion].getResponse(), subject, message);
   }
   PropertiesService.getScriptProperties().setProperty('numConfirmationsSent', numConfirmations);
   Logger.log("Finished sending " + numConfirmations + " confirmation emails");
@@ -226,16 +226,22 @@ function moveWaitlist_() {
     confirmationQuestionAdded = true;
   }
   var rowNum = getRowWithItem_(values, "Confirmation email");
-  var subject = values[rowNum][contentColumn];
-  rowNum += 1;
-  var messagePart1 = values[rowNum][contentColumn];
-  rowNum += 1;
+  var subject = values[getNextRowWithDescription_(rowNum, values, "Subject")][contentColumn];
+  Logger.log("Confirmation email subject: " + subject);
+  var messagePart1 = values[getNextRowWithDescription_(rowNum, values, "Part 1")][contentColumn];
+  Logger.log("Confirmation email message part 1: " + messagePart1);
+  var messagePart2 = values[getNextRowWithDescription_(rowNum, values, "Part 2")][contentColumn];
+  Logger.log("Confirmation email message part 2: " + messagePart2);
   var numSeats = values[getRowWithItem_(values, "Number of seats")][contentColumn];
-  var messagePart2 = values[rowNum][contentColumn];
-  rowNum += 1;
-  message += " " + numSeats + " ";
-  rowNum += 1;
-  message += values[rowNum][contentColumn];
+  Logger.log("Confirmation email numSeats: " + numSeats);
+  var message = messagePart1;
+  Logger.log("Confirmation email message: " + message + ", and message part 1: " + messagePart1);
+  Logger.log("signups.length: " + signups.length + ", numseats: " + numSeats);
+  if (signups.length > numSeats) {
+    message = message + " " + (signups.length - numSeats);
+    message = message + messagePart2;
+  }
+  Logger.log("Confirmation email message: " + message);
   var confirmQuestion = getQuestion_(signUpForm, values[getRowWithItem_(values, "Confirmation question")][contentColumn]);
   var emailQuestion = whichQuestion_(signUpForm,"Email");
   while (numConfirmations < numSeats && response < signups.length) {
